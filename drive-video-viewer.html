@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mhann4 Guide Video</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #111;
+      color: #fff;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+    #gallery {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1rem;
+    }
+    .video-card {
+      position: relative;
+      width: 300px;
+      height: 180px;
+      background: #222;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .video-card canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    .video-card .thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .video-card .title {
+      position: absolute;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      width: 100%;
+      text-align: center;
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    #player-container {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.95);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    #player {
+      width: 90vw;
+      height: 50vh;
+      border: none;
+    }
+    #controls {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    #controls button, #controls select, #controls input[type="range"] {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 4px;
+      border: none;
+      background: #333;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="gallery"></div>
+  <div id="player-container">
+    <iframe id="player" allow="autoplay"></iframe>
+    <div id="controls">
+      <button id="playPause">▶️</button>
+      <button id="stop">⏹</button>
+      <button id="back">⏪</button>
+      <button id="forward">⏩</button>
+      <select id="speed">
+        <option value="0.5">0.5x</option>
+        <option value="0.75">0.75x</option>
+        <option value="1" selected>1x</option>
+        <option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option>
+        <option value="1.75">1.75x</option>
+      </select>
+      <input type="range" id="timeline" min="0" max="100" value="0" />
+    </div>
+  </div>
+
+  <script>
+    const videos = [
+      { title: "App and Bonus", id: "1P5Aa179THk-2qIDFp8KsSmVJoY3eHRtw", thumb: "1Ok1OK4hpeBYlqfrdXHoCIEdxDeesijfI" },
+      { title: "Friday Bonus", id: "1PJvASoJ0s1y2vtDe8cJXmODyUyeRfMVA", thumb: "1OxLtkpz1xi5Gjv2p4M0VYkKQB1H7k0zv" },
+      { title: "Ga ချိတ်/ဖြုတ်", id: "1RLdxOGoxLiA3DdNr19S68MnI3aqPsSgj" },
+      { title: "Hyper Bonus", id: "1PEvsEFe12HjtBaEgrk67qoaAhZojuGVN", thumb: "1PzUFO0f8uHSCO9tiaakrkS1LAkMgjTiD" },
+      { title: "Monday Bonus", id: "1PQY4wSjIQRjt0q7gkK0Tm3YC0AANRPHf", thumb: "1OwmQNjlzGaP9v8NwHgDelfSPkQ0iYRY0" },
+      { title: "System Bet", id: "1P4AVEKKQr4EFczBFFToGet3LKDuLVOn-", thumb: "1OXRCMxuuhUzQTV0LpCZbruc5c-4KOANz" },
+      { title: "Top Bins", id: "1PHbk8t2aw-Hc_785Ster9hpqlpNw61wz", thumb: "1OwPJ-p4LXPMl-G68K-fXH3KHJj7RIIGz" },
+      { title: "X2 Wednesday Promotion", id: "1PDyQ94yAkFBbNk-qm9PbrhGBKZQPXr7f", thumb: "1OlLacnN55x3lIVnxfuHvjjC8j-KXVC6Y" },
+      { title: "How to Sign Up?", id: "1PQxDktomqsfwg4T0uiAdi1RtAleloBSy", thumb: "1P3o_GOGiXZPRpUVFfbIPLfZQWzJHyctf" },
+      { title: "Loboki Bet Builder", id: "10USKQYSCAnizbQcu88XJbnd8GAvcDho2", thumb: "10MZPYSyle1TCcjbM3He12BjUWxp8Ednr" }
+    ];
+
+    class VideoCard {
+      constructor(video) {
+        this.video = video;
+        this.el = document.createElement('div');
+        this.el.className = 'video-card';
+        this.el.innerHTML = `
+          <canvas></canvas>
+          <img class="thumb" src="${video.thumb ? `https://drive.google.com/uc?export=view&id=${video.thumb}` : ''}" />
+          <div class="title">${video.title}</div>
+        `;
+        this.el.addEventListener('click', () => AppController.openPlayer(video.id));
+        this.animateCanvas();
+      }
+
+      animateCanvas() {
+        const canvas = this.el.querySelector('canvas');
+        const ctx = canvas.getContext('2d');
+        let glow = 0;
+        setInterval(() => {
+          glow = (glow + 1) % 100;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.strokeStyle = `rgba(0,255,255,${glow/100})`;
+          ctx.lineWidth = 4;
+          ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+        }, 100);
+      }
+
+      render() {
+        return this.el;
+      }
+    }
+
+    class DrivePlayer {
+      static load(id) {
+        const iframe = document.getElementById('player');
+        iframe.src = `https://drive.google.com/file/d/${id}/preview`;
+        document.getElementById('player-container').style.display = 'flex';
+      }
+
+      static stop() {
+        const iframe = document.getElementById('player');
+        iframe.src = '';
+        document.getElementById('player-container').style.display = 'none';
+      }
+    }
+
+    class AppController {
+      static init() {
+        const gallery = document.getElementById('gallery');
+        videos.forEach(video => {
+          const card = new VideoCard(video);
+          gallery.appendChild(card.render());
+        });
+
+        document.getElementById('stop').onclick = DrivePlayer.stop;
+        document.getElementById('playPause').onclick = () => alert('Play/Pause not supported in Drive preview');
+        document.getElementById('back').onclick = () => alert('Seek not supported in Drive preview');
+        document.getElementById('forward').onclick = () => alert('Seek not supported in Drive preview');
+        document.getElementById('speed').onchange = () => alert('Speed control not supported in Drive preview');
+        document.getElementById('timeline').oninput = () => alert('Timeline not supported in Drive preview');
+
+        document.addEventListener('keydown', e => {
+          if (e.code === 'Space') document.get[43dcd9a7-70db-4a1f-b0ae-981daa162054](https://github.com/lzh-yi/Web-Fork-/tree/024b3e55587afdf9f05a677613a75f24e3d1803e/03-CSS%E8%BF%9B%E9%98%B6%2F04-%E5%A6%82%E4%BD%95%E8%AE%A9%E4%B8%80%E4%B8%AA%E5%85%83%E7%B4%A0%E6%B0%B4%E5%B9%B3%E5%9E%82%E7%9B%B4%E5%B1%85%E4%B8%AD%EF%BC%9F.md?citationMarker=43dcd9a7-70db-4a1f-b0ae-981daa162054 "1")[43dcd9a7-70db-4a1f-b0ae-981daa162054](https://github.com/TitarenkoBA/AudioPleer/tree/2f31c0d2954ecbe75fbc575e23eae9bc280f717b/js%2Fscript.js?citationMarker=43dcd9a7-70db-4a1f-b0ae-981daa162054 "2")[43dcd9a7-70db-4a1f-b0ae-981daa162054](https://github.com/kromchenko/babulya/tree/74fd7eab500f1435e32d32b97d47f7e4827e5df7/public%2Fwp-content%2Fplugins%2Fwc-product-table-lite%2Feditor%2Fpartials%2Felement-editor%2Fpartials%2Fproduct_image.php?citationMarker=43dcd9a7-70db-4a1f-b0ae-981daa162054 "3")
